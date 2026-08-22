@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>page</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#101018;color:#eee;padding:40px;text-align:center;font-family:system-ui}
+
+#passInput{
+    width:100%;
+    max-width:420px;
+    padding:12px;
+    border-radius:8px;
+    border:none;
+    font-size:15px;
+    margin-top:12px;
+}
+#decryptBtn{
+    margin-top:12px;
+    padding:12px 28px;
+    font-size:16px;
+    border:none;
+    border-radius:10px;
+    background:#4285ff;
+    color:#fff;
+    cursor:pointer;
+    user-select:none;
+}
+#decryptBtn:active{
+    transform:scale(0.96);
+}
+#status{
+    margin-top:14px;
+    color:#ffaaaa;
+}
+
+#chickenBtn{
+    margin-top:24px;
+    padding:12px 28px;
+    font-size:16px;
+    border:none;
+    border-radius:10px;
+    background:#ff7849;
+    color:#fff;
+    cursor:pointer;
+    user-select:none;
+}
+#chickenBtn:active{
+    transform:scale(0.96);
+}
+
+.qrcode-wrap{
+    margin-top:20px;
+    display:none;
+}
+.qrcode-wrap img{
+    max-width:260px;
+    width:90%;
+    border-radius:12px;
+}
+</style>
+</head>
+<body>
+<h2>资源解密下载</h2>
+<h2>记得给木瓜一个好评哦!</h2>
+<h2>加个鸡腿也是可以的</h2>
+
+<div>
+    <p style="margin-top:20px;">请输入十六进制密钥</p>
+    <input id="passInput" placeholder="输入十六进制密钥">
+    <br>
+    <button id="decryptBtn">开始下载</button>
+    <div id="status"></div>
+</div>
+
+<button id="chickenBtn">🍗 加个鸡腿</button>
+
+<div class="qrcode-wrap" id="qrBox">
+    <img src="https://raw.githubusercontent.com/MuGua-woof/qrcode/refs/heads/main/VX_PAY.png" alt="收款码">
+    <p style="margin-top:8px;color:#ccc;">微信扫码</p>
+</div>
+
+<script>
+// 加密后的 .enc 文件列表，放到网页同目录
+const fileList = [
+    "1787353149555.png.enc",
+    "1787338842702.gif.enc"
+];
+
+const statusDom = document.getElementById("status");
+
+async function hexToArray(hex) {
+    const arr = [];
+    for(let i = 0; i < hex.length; i += 2) {
+        arr.push(parseInt(hex.slice(i, i+2), 16));
+    }
+    return new Uint8Array(arr);
+}
+
+async function decryptAndDownload(fileNameEnc, keyHex) {
+    statusDom.innerText = `正在读取：${fileNameEnc}`;
+    const resp = await fetch(fileNameEnc);
+    if(!resp.ok) throw new Error(`${fileNameEnc} 文件缺失(404)`);
+    const buf = await resp.arrayBuffer();
+
+    const rawKey = await hexToArray(keyHex);
+    const cryptoKey = await crypto.subtle.importKey(
+        "raw", rawKey,
+        {name:"AES-GCM"},
+        false, ["decrypt"]
+    );
+
+    const data = new Uint8Array(buf);
+    const iv = data.slice(0,12);
+    const cipherText = data.slice(12);
+
+    let plainBuf;
+    try {
+        plainBuf = await crypto.subtle.decrypt({name:"AES-GCM", iv}, cryptoKey, cipherText);
+    } catch(e) {
+        throw new Error("密钥错误或文件损坏");
+    }
+
+    const originName = fileNameEnc.replace(/\.enc$/,"");
+    const blob = new Blob([plainBuf]);
+    const objUrl = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = objUrl;
+    a.download = originName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(objUrl);
+}
+
+document.getElementById("decryptBtn").addEventListener("click", async ()=>{
+    statusDom.innerText = "";
+    const keyHex = document.getElementById("passInput").value.trim();
+
+    if(!/^[0-9a-fA-F]+$/.test(keyHex)){
+        statusDom.innerText = "错误：必须输入十六进制字符串密钥";
+        return;
+    }
+    try {
+        for(const f of fileList) {
+            await decryptAndDownload(f, keyHex);
+            await new Promise(r=>setTimeout(r,400));
+        }
+        statusDom.innerText = "下载完成";
+    } catch(err) {
+        statusDom.innerText = err.message;
+    }
+})
+
+// 鸡腿按钮切换二维码
+const btn = document.getElementById("chickenBtn");
+const qrBox = document.getElementById("qrBox");
+btn.addEventListener("click",()=>{
+    if(qrBox.style.display === "block"){
+        qrBox.style.display = "none";
+    }else{
+        qrBox.style.display = "block";
+    }
+})
+</script>
+</body>
+</html>
