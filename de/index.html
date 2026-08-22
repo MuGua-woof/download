@@ -75,12 +75,12 @@ body{background:#101018;color:#eee;padding:40px;text-align:center;font-family:sy
 <div>
     <p style="margin-top:20px;">待解密文件名(.enc)</p>
     <input id="fileInputBox" placeholder="例如：xxx.png.enc，多个用英文逗号分隔">
-    <div class="tip">⚠️必须填写文件名，无内置默认文件</div>
+    <div class="tip">必须填写文件名</div>
 
     <p style="margin-top:16px;">请输入十六进制密钥进行解密</p>
     <input id="passInput" placeholder="输入十六进制密钥">
     <br>
-    <button id="decryptBtn">🔓 解密并开始下载</button>
+    <button id="decryptBtn">下载</button>
     <div id="status"></div>
 </div>
 
@@ -139,7 +139,7 @@ async function decryptAndDownload(fileNameEnc, keyHex) {
         // Web Crypto 自动处理 PKCS7 填充，直接使用结果
         plainBuf = decrypted;
     } catch(e) {
-        throw new Error("❌密钥错误或文件损坏");
+        throw new Error("密钥错误或文件损坏");
     }
 
     const originName = fileNameEnc.replace(/\.enc$/,"");
@@ -183,7 +183,7 @@ document.getElementById("decryptBtn").addEventListener("click", async ()=>{
             await decryptAndDownload(f, keyHex);
             await new Promise(r=>setTimeout(r,400));
         }
-        statusDom.innerText = "✅全部解密下载完成";
+        statusDom.innerText = "下载完成";
     } catch(err) {
         statusDom.innerText = err.message;
     }
