@@ -102,6 +102,16 @@ async function hexToArray(hex) {
     return new Uint8Array(arr);
 }
 
+// AES-CBC PKCS7 解密
+function pkcs7Unpad(data) {
+    const lastByte = data[data.length - 1];
+    // 验证填充
+    for(let i = data.length - lastByte; i < data.length; i++) {
+        if(data[i] !== lastByte) throw new Error("填充无效");
+    }
+    return data.slice(0, data.length - lastByte);
+}
+
 async function decryptAndDownload(fileNameEnc, keyHex) {
     statusDom.innerText = `正在读取：${fileNameEnc}`;
     const resp = await fetch(fileNameEnc);
@@ -111,18 +121,23 @@ async function decryptAndDownload(fileNameEnc, keyHex) {
     const rawKey = await hexToArray(keyHex);
     const cryptoKey = await crypto.subtle.importKey(
         "raw", rawKey,
-        {name:"AES-GCM"},
+        {name:"AES-CBC"},
         false, ["decrypt"]
     );
 
     const data = new Uint8Array(buf);
-    const iv = data.slice(0,12);
-    const tag = data.slice(-16);
-    const cipherText = data.slice(12, -16);
+    const iv = data.slice(0,16);
+    const cipherText = data.slice(16);
 
     let plainBuf;
     try {
-        plainBuf = await crypto.subtle.decrypt({name:"AES-GCM", iv:iv, tag:tag}, cryptoKey, cipherText);
+        const decrypted = await crypto.subtle.decrypt(
+            {name:"AES-CBC", iv:iv},
+            cryptoKey,
+            cipherText
+        );
+        // Web Crypto 自动处理 PKCS7 填充，直接使用结果
+        plainBuf = decrypted;
     } catch(e) {
         throw new Error("❌密钥错误或文件损坏");
     }
@@ -155,6 +170,12 @@ document.getElementById("decryptBtn").addEventListener("click", async ()=>{
 
     if(!/^[0-9a-fA-F]+$/.test(keyHex)){
         statusDom.innerText = "错误：必须输入十六进制字符串密钥";
+        return;
+    }
+    // 密钥长度校验：16/24/32字节 = 32/48/64 十六进制字符
+    const keyLen = keyHex.length / 2;
+    if(![16,24,32].includes(keyLen)){
+        statusDom.innerText = "错误：密钥长度必须为16/24/32字节(32/48/64位十六进制)";
         return;
     }
     try {
