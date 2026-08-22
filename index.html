@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>URL参数驱动自动下载</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#11121a;color:#eee;padding:40px;text-align:center;font-family:system-ui}
+.error{color:#ff7777;margin-top:16px}
+.info{color:#aaa;margin-top:10px}
+</style>
+</head>
+<body>
+<h2>资源自动下载器</h2>
+<div class="info" id="status">等待解析参数...</div>
+
+<script>
+// 获取url ?file=xxx 参数
+function getUrlParam(key){
+    const params = new URLSearchParams(location.search);
+    return params.get(key);
+}
+
+async function forceDownload(filename){
+    const statusDom = document.getElementById('status');
+    statusDom.innerText = `正在下载：${filename}`;
+    try{
+        const resp = await fetch(filename);
+        if(!resp.ok) throw new Error("文件不存在");
+        const blob = await resp.blob();
+        const objUrl = URL.createObjectURL(blob);
+
+        const a = document.createElement("a");
+        a.href = objUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(objUrl);
+        statusDom.innerText = `下载>>${filename}`;
+    }catch(e){
+        document.body.innerHTML += `<p class="error">失败：${e.message}</p>`;
+    }
+}
+
+window.addEventListener("DOMContentLoaded",()=>{
+    const fileName = getUrlParam("file");
+    if(!fileName){
+        document.getElementById("status").innerHTML =
+        "无效<br>error";
+        return;
+    }
+    // 简单防护，禁止向上遍历路径，防止 ?file=../../etc/passwd 路径穿越
+    if(fileName.includes("../") || fileName.includes("/")){
+        document.body.innerHTML += `<p class="error">非法文件名，禁止路径跳转</p>`;
+        return;
+    }
+    forceDownload(fileName);
+})
+</script>
+</body>
+</html>
