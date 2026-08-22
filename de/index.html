@@ -65,13 +65,13 @@ body{background:#101018;color:#eee;padding:40px;text-align:center;font-family:sy
 <body>
 <h2>资源解密下载</h2>
 <h2>记得给木瓜一个好评哦!</h2>
-<h2>加个鸡腿也是可以的</h2>
+<h2>加QwQ个鸡腿也是可以的</h2>
 
 <div>
-    <p style="margin-top:20px;">请输入十六进制密钥</p>
+    <p style="margin-top:20px;">请输入十六进制密钥进行解密</p>
     <input id="passInput" placeholder="输入十六进制密钥">
     <br>
-    <button id="decryptBtn">开始下载</button>
+    <button id="decryptBtn">🔓 解密并开始下载</button>
     <div id="status"></div>
 </div>
 
@@ -83,7 +83,6 @@ body{background:#101018;color:#eee;padding:40px;text-align:center;font-family:sy
 </div>
 
 <script>
-// 加密后的 .enc 文件列表，放到网页同目录
 const fileList = [
     "1787353149555.png.enc",
     "1787338842702.gif.enc"
@@ -114,13 +113,14 @@ async function decryptAndDownload(fileNameEnc, keyHex) {
 
     const data = new Uint8Array(buf);
     const iv = data.slice(0,12);
-    const cipherText = data.slice(12);
+    const tag = data.slice(-16);
+    const cipherText = data.slice(12, -16);
 
     let plainBuf;
     try {
-        plainBuf = await crypto.subtle.decrypt({name:"AES-GCM", iv}, cryptoKey, cipherText);
+        plainBuf = await crypto.subtle.decrypt({name:"AES-GCM", iv:iv, tag:tag}, cryptoKey, cipherText);
     } catch(e) {
-        throw new Error("密钥错误或文件损坏");
+        throw new Error("❌密钥错误或文件损坏");
     }
 
     const originName = fileNameEnc.replace(/\.enc$/,"");
@@ -149,21 +149,16 @@ document.getElementById("decryptBtn").addEventListener("click", async ()=>{
             await decryptAndDownload(f, keyHex);
             await new Promise(r=>setTimeout(r,400));
         }
-        statusDom.innerText = "下载完成";
+        statusDom.innerText = "✅全部解密下载完成";
     } catch(err) {
         statusDom.innerText = err.message;
     }
 })
 
-// 鸡腿按钮切换二维码
 const btn = document.getElementById("chickenBtn");
 const qrBox = document.getElementById("qrBox");
 btn.addEventListener("click",()=>{
-    if(qrBox.style.display === "block"){
-        qrBox.style.display = "none";
-    }else{
-        qrBox.style.display = "block";
-    }
+    qrBox.style.display = qrBox.style.display === "block" ? "none" : "block";
 })
 </script>
 </body>
