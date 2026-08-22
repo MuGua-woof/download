@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh‑CN">
+<head>
+<meta charset="UTF‑8">
+<meta name="viewport" content="width=device‑width, initial‑scale=1.0">
+<title>图片AES加密｜自动生成密钥修复版</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:system‑ui}
+body{background:#12121a;color:#eee;padding:32px;max‑width:600px;margin:0 auto}
+.box{margin:16px 0}
+input,button{width:100%;padding:12px;font‑size:15px;border‑radius:8px;border:none;margin‑top:8px}
+button{background:#4080ff;color:white;cursor:pointer}
+#log{margin‑top:12px;color:#aaa;font‑size:13px;white‑space:pre‑wrap}
+.key‑out{
+    background:#1e1e2f;
+    padding:12px;
+    border‑radius:8px;
+    word‑break:break‑all;
+    color:#73d0ff;
+    margin‑top:10px;
+}
+.warn{
+    color:#ff8888;
+    margin‑top:6px;
+    font‑size:13px;
+}
+</style>
+</head>
+<body>
+<h1>图片加密 AES‑GCM</h1>
+<div class="box">
+  <label>选择图片 png/jpg/gif</label>
+  <input type="file" id="fileInput" accept="image/*">
+</div>
+<button id="encryptBtn">生成 .enc 加密文件</button>
+
+<div class="warn">⚠️加密完成复制保存密钥！密钥丢失文件永远无法解密！</div>
+<div id="keyDisplay" class="key‑out" style="display:none"></div>
+<div id="log"></div>
+
+<script>
+const logDom = document.querySelector("#log");
+const keyDisplay = document.querySelector("#keyDisplay");
+function log(s){logDom.innerText += s+"\n";}
+
+async function arrayToHex(buf){
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+
+// 安全生成16字节随机，修复getRandomValues异常
+function safeRandomBytes(len){
+    const arr = new Uint8Array(len);
+    if(typeof crypto !== "undefined" && crypto.getRandomValues){
+        try{
+            crypto.getRandomValues(arr);
+            return arr;
+        }catch(e){
+            log("原生crypto异常，使用降级随机");
+        }
+    }
+    // 降级
+    for(let i=0;i<len;i++){
+        arr[i] = Math.floor(Math.random()*256);
+    }
+    return arr;
+}
+
+document.querySelector("#encryptBtn").onclick = async ()=>{
+  logDom.innerText="";
+  keyDisplay.style.display="none";
+  const file = document.querySelector("#fileInput").files[0];
+  if(!file){log("请先选择图片文件");return;}
+
+  let rawKeyBytes;
+  try{
+      rawKeyBytes = safeRandomBytes(16);
+  }catch(e){
+      log("❌生成密钥失败:"+e.message);
+      return;
+  }
+
+  const keyHex = await arrayToHex(rawKeyBytes);
+  let cryptoKey;
+  try{
+    cryptoKey = await crypto.subtle.importKey("raw",rawKeyBytes,{name:"AES‑GCM"},false,["encrypt"]);
+  }catch(e){
+    log("❌WebCrypto初始化失败！\n不要双击本地打开html(file://)！\n请放到http网页服务打开，使用Chrome/Edge浏览器\n"+e.message);
+    return;
+  }
+
+  const fileBuf = await file.arrayBuffer();
+  const iv = safeRandomBytes(12);
+  const encrypted = await crypto.subtle.encrypt({name:"AES‑GCM",iv},cryptoKey,fileBuf);
+
+  const out = new Uint8Array(12+encrypted.byteLength);
+  out.set(iv,0);
+  out.set(new Uint8Array(encrypted),12);
+
+  const blob = new Blob([out]);
+  const a = document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download = file.name+".enc";
+  a.click();
+  URL.revokeObjectURL(a.href);
+
+  keyDisplay.innerText = "密钥："+keyHex;
+  keyDisplay.style.display="block";
+  log(`✅加密完成，输出：${file.name}.enc`);
+  log(`⚠️复制上方密钥，用于解密页面！`);
+}
+</script>
+</body>
+</html>
