@@ -8,7 +8,7 @@
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#101018;color:#eee;padding:40px;text-align:center;font-family:system-ui}
 
-#passInput{
+#passInput, #fileInputBox{
     width:100%;
     max-width:420px;
     padding:12px;
@@ -60,6 +60,11 @@ body{background:#101018;color:#eee;padding:40px;text-align:center;font-family:sy
     width:90%;
     border-radius:12px;
 }
+.tip{
+    font-size:13px;
+    color:#bbbbbb;
+    margin-top:6px;
+}
 </style>
 </head>
 <body>
@@ -68,7 +73,11 @@ body{background:#101018;color:#eee;padding:40px;text-align:center;font-family:sy
 <h2>加QwQ个鸡腿也是可以的</h2>
 
 <div>
-    <p style="margin-top:20px;">请输入十六进制密钥进行解密</p>
+    <p style="margin-top:20px;">待解密文件名(.enc)</p>
+    <input id="fileInputBox" placeholder="例如：xxx.png.enc，多个用英文逗号分隔">
+    <div class="tip">⚠️必须填写文件名，无内置默认文件</div>
+
+    <p style="margin-top:16px;">请输入十六进制密钥进行解密</p>
     <input id="passInput" placeholder="输入十六进制密钥">
     <br>
     <button id="decryptBtn">🔓 解密并开始下载</button>
@@ -83,10 +92,6 @@ body{background:#101018;color:#eee;padding:40px;text-align:center;font-family:sy
 </div>
 
 <script>
-const fileList = [
-    "1787366312885.gif.enc"
-];
-
 const statusDom = document.getElementById("status");
 
 async function hexToArray(hex) {
@@ -138,6 +143,15 @@ async function decryptAndDownload(fileNameEnc, keyHex) {
 document.getElementById("decryptBtn").addEventListener("click", async ()=>{
     statusDom.innerText = "";
     const keyHex = document.getElementById("passInput").value.trim();
+    const fileText = document.getElementById("fileInputBox").value.trim();
+
+    // 分割文件名
+    const fileList = fileText.split(",").map(s=>s.trim()).filter(s=>s);
+
+    if(fileList.length===0){
+        statusDom.innerText = "错误：请填写待解密的 .enc 文件名";
+        return;
+    }
 
     if(!/^[0-9a-fA-F]+$/.test(keyHex)){
         statusDom.innerText = "错误：必须输入十六进制字符串密钥";
