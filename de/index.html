@@ -92,7 +92,7 @@ body{background:#101018;color:#eee;padding:40px;text-align:center;font-family:sy
 </div>
 
 <script>
-const statusDom = document.getElementById("status");
+    const statusDom = document.getElementById("status");
 
 async function hexToArray(hex) {
     const arr = [];
@@ -102,10 +102,9 @@ async function hexToArray(hex) {
     return new Uint8Array(arr);
 }
 
-// AES-CBC PKCS7 解密
+// AES‑CBC PKCS7 解密
 function pkcs7Unpad(data) {
     const lastByte = data[data.length - 1];
-    // 验证填充
     for(let i = data.length - lastByte; i < data.length; i++) {
         if(data[i] !== lastByte) throw new Error("填充无效");
     }
@@ -121,7 +120,7 @@ async function decryptAndDownload(fileNameEnc, keyHex) {
     const rawKey = await hexToArray(keyHex);
     const cryptoKey = await crypto.subtle.importKey(
         "raw", rawKey,
-        {name:"AES-CBC"},
+        {name:"AES‑CBC"},
         false, ["decrypt"]
     );
 
@@ -132,11 +131,10 @@ async function decryptAndDownload(fileNameEnc, keyHex) {
     let plainBuf;
     try {
         const decrypted = await crypto.subtle.decrypt(
-            {name:"AES-CBC", iv:iv},
+            {name:"AES‑CBC", iv:iv},
             cryptoKey,
             cipherText
         );
-        // Web Crypto 自动处理 PKCS7 填充，直接使用结果
         plainBuf = decrypted;
     } catch(e) {
         throw new Error("密钥错误或文件损坏");
@@ -160,19 +158,25 @@ document.getElementById("decryptBtn").addEventListener("click", async ()=>{
     const keyHex = document.getElementById("passInput").value.trim();
     const fileText = document.getElementById("fileInputBox").value.trim();
 
-    // 分割文件名
-    const fileList = fileText.split(",").map(s=>s.trim()).filter(s=>s);
+    let fileList = fileText.split(",").map(s=>s.trim()).filter(s=>s);
+
+    // ==========新增：自动补 .enc 后缀==========
+    fileList = fileList.map(name=>{
+        if(!name.endsWith(".enc")){
+            return name + ".enc";
+        }
+        return name;
+    });
 
     if(fileList.length===0){
         statusDom.innerText = "错误：请填写文件名";
         return;
     }
 
-    if(!/^[0-9a-fA-F]+$/.test(keyHex)){
+    if(!/^[0‑9a‑fA‑F]+$/.test(keyHex)){
         statusDom.innerText = "错误：必须输入十六进制字符串密钥";
         return;
     }
-    // 密钥长度校验：16/24/32字节 = 32/48/64 十六进制字符
     const keyLen = keyHex.length / 2;
     if(![16,24,32].includes(keyLen)){
         statusDom.innerText = "错误：密钥长度必须为16/24/32字节(32/48/64位十六进制)";
@@ -194,6 +198,7 @@ const qrBox = document.getElementById("qrBox");
 btn.addEventListener("click",()=>{
     qrBox.style.display = qrBox.style.display === "block" ? "none" : "block";
 })
+
 </script>
 </body>
 </html>
