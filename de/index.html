@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>page</title>
-<link rel="icon" href="data:,">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#101018;color:#eee;padding:40px;text-align:center;font-family:system-ui}
@@ -35,26 +34,6 @@ body{background:#101018;color:#eee;padding:40px;text-align:center;font-family:sy
 #status{
     margin-top:14px;
     color:#ffaaaa;
-    min-height:24px;
-}
-#progressBarWrap{
-    max-width:420px;
-    margin:12px auto 0;
-    height:10px;
-    background:#272738;
-    border-radius:6px;
-    overflow:hidden;
-}
-#progressBar{
-    height:100%;
-    width:0%;
-    background:#4285ff;
-    transition: width 0.2s;
-}
-#progressText{
-    font-size:13px;
-    color:#cccccc;
-    margin-top:6px;
 }
 
 #chickenBtn{
@@ -87,7 +66,6 @@ body{background:#101018;color:#eee;padding:40px;text-align:center;font-family:sy
     margin-top:6px;
 }
 </style>
-</head>
 <body>
 <h2>下载稿件</h2>
 <h2>记得给木瓜一个好评哦!</h2>
@@ -104,11 +82,6 @@ body{background:#101018;color:#eee;padding:40px;text-align:center;font-family:sy
     <br>
     <button id="decryptBtn">下载</button>
     <div id="status"></div>
-
-    <div id="progressBarWrap">
-        <div id="progressBar"></div>
-    </div>
-    <div id="progressText"></div>
 </div>
 
 <button id="chickenBtn">🍗 加个鸡腿</button>
@@ -119,9 +92,9 @@ body{background:#101018;color:#eee;padding:40px;text-align:center;font-family:sy
 </div>
 
 <script>
+        
+
     const statusDom = document.getElementById("status");
-    const progressBar = document.getElementById("progressBar");
-    const progressText = document.getElementById("progressText");
 
 async function hexToArray(hex) {
     const arr = [];
@@ -131,33 +104,22 @@ async function hexToArray(hex) {
     return new Uint8Array(arr);
 }
 
-// fetch超时包装
-function fetchWithTimeout(url, timeout=8000){
-    const ctrl = new AbortController();
-    const timer = setTimeout(()=>ctrl.abort(),timeout);
-    return fetch(url, {signal:ctrl.signal}).finally(()=>clearTimeout(timer));
+// AES-CBC PKCS7 解密
+function pkcs7Unpad(data) {
+    const lastByte = data[data.length - 1];
+    // 验证填充
+    for(let i = data.length - lastByte; i < data.length; i++) {
+        if(data[i] !== lastByte) throw new Error("填充无效");
+    }
+    return data.slice(0, data.length - lastByte);
 }
 
-/**
- * @param {string} fileNameEnc
- * @param {string} keyHex
- * @param {number} current 当前序号
- * @param {number} total 总数量
- */
-async function decryptAndDownload(fileNameEnc, keyHex, current, total) {
-    const percent = Math.round((current / total) * 100);
-    progressBar.style.width = `${percent}%`;
-
-    statusDom.innerText = `[${current}/${total}] 正在读取：${fileNameEnc}`;
-    progressText.innerText = `进度 ${percent}% · 请求文件`;
-
-    const resp = await fetchWithTimeout(fileNameEnc);
+async function decryptAndDownload(fileNameEnc, keyHex) {
+    statusDom.innerText = `正在读取：${fileNameEnc}`;
+    const resp = await fetch(fileNameEnc);
     if(!resp.ok) throw new Error(`${fileNameEnc} 文件缺失(404)`);
-
-    progressText.innerText = `进度 ${percent}% · 接收二进制数据`;
     const buf = await resp.arrayBuffer();
 
-    progressText.innerText = `进度 ${percent}% · 解析密钥`;
     const rawKey = await hexToArray(keyHex);
     const cryptoKey = await crypto.subtle.importKey(
         "raw", rawKey,
@@ -169,7 +131,6 @@ async function decryptAndDownload(fileNameEnc, keyHex, current, total) {
     const iv = data.slice(0,16);
     const cipherText = data.slice(16);
 
-    progressText.innerText = `进度 ${percent}% · AES解密中`;
     let plainBuf;
     try {
         const decrypted = await crypto.subtle.decrypt(
@@ -177,12 +138,12 @@ async function decryptAndDownload(fileNameEnc, keyHex, current, total) {
             cryptoKey,
             cipherText
         );
+        // Web Crypto 自动处理 PKCS7 填充，直接使用结果
         plainBuf = decrypted;
     } catch(e) {
         throw new Error("密钥错误或文件损坏");
     }
 
-    progressText.innerText = `进度 ${percent}% · 生成下载`;
     const originName = fileNameEnc.replace(/\.enc$/,"");
     const blob = new Blob([plainBuf]);
     const objUrl = URL.createObjectURL(blob);
@@ -198,18 +159,11 @@ async function decryptAndDownload(fileNameEnc, keyHex, current, total) {
 
 document.getElementById("decryptBtn").addEventListener("click", async ()=>{
     statusDom.innerText = "";
-    progressBar.style.width = "0%";
-    progressText.innerText = "";
-
     const keyHex = document.getElementById("passInput").value.trim();
     const fileText = document.getElementById("fileInputBox").value.trim();
 
-    let fileList = fileText.split(",").map(s=>s.trim()).filter(s=>s);
-    // 自动补 .enc
-    fileList = fileList.map(name=>{
-        if(!name.endsWith(".enc")) return name + ".enc";
-        return name;
-    });
+    // 分割文件名
+    const fileList = fileText.split(",").map(s=>s.trim()).filter(s=>s);
 
     if(fileList.length===0){
         statusDom.innerText = "错误：请填写文件名";
@@ -220,32 +174,20 @@ document.getElementById("decryptBtn").addEventListener("click", async ()=>{
         statusDom.innerText = "错误：必须输入十六进制字符串密钥";
         return;
     }
+    // 密钥长度校验：16/24/32字节 = 32/48/64 十六进制字符
     const keyLen = keyHex.length / 2;
     if(![16,24,32].includes(keyLen)){
         statusDom.innerText = "错误：密钥长度必须为16/24/32字节(32/48/64位十六进制)";
         return;
     }
-
-    // 禁用按钮防止重复点击
-    const decryptBtn = document.getElementById("decryptBtn");
-    decryptBtn.disabled = true;
-    decryptBtn.innerText = "处理中…";
-
     try {
-        const total = fileList.length;
-        for(let idx = 0; idx < total; idx++) {
-            const f = fileList[idx];
-            await decryptAndDownload(f, keyHex, idx+1, total);
+        for(const f of fileList) {
+            await decryptAndDownload(f, keyHex);
             await new Promise(r=>setTimeout(r,400));
         }
-        progressBar.style.width = "100%";
-        statusDom.innerText = "✅全部下载完成";
-        progressText.innerText = "100% · 任务结束";
+        statusDom.innerText = "全部下载完成";
     } catch(err) {
-        statusDom.innerText = "❌" + err.message;
-    }finally{
-        decryptBtn.disabled = false;
-        decryptBtn.innerText = "下载";
+        statusDom.innerText = err.message;
     }
 })
 
@@ -254,6 +196,7 @@ const qrBox = document.getElementById("qrBox");
 btn.addEventListener("click",()=>{
     qrBox.style.display = qrBox.style.display === "block" ? "none" : "block";
 })
+
 </script>
 </body>
 </html>
