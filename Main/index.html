@@ -473,7 +473,7 @@ function ensureEnc(name) {
 
 async function decryptAndDownload(fileNameEnc, keyHex) {
     const realName = ensureEnc(fileNameEnc);
-    const filePath = realName.startsWith('/') ? realName : '/assets/' + realName;
+    const filePath = realName;
 
     setStatus(`正在读取：${realName}`, "info");
     addQueueItem(realName);
