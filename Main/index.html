@@ -7,7 +7,6 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 
-/* 滚动条 */
 ::-webkit-scrollbar{width:6px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.15);border-radius:3px}
@@ -23,7 +22,6 @@ body{
         radial-gradient(ellipse at 50% 80%, rgba(94,108,255,0.06) 0%, transparent 50%);
 }
 
-/* 顶部栏 */
 .topbar{
     display:flex;
     align-items:center;
@@ -58,14 +56,12 @@ body{
     color:#aaa;
 }
 
-/* 主容器 */
 .main{
     max-width:960px;
     margin:0 auto;
     padding:40px 24px;
 }
 
-/* 标题区 */
 .hero{
     text-align:center;
     margin-bottom:36px;
@@ -86,7 +82,6 @@ body{
     font-size:15px;
 }
 
-/* 桌面：左右分栏 */
 .workspace{
     display:grid;
     grid-template-columns:1fr 1fr;
@@ -95,7 +90,6 @@ body{
     animation:fadeInUp 0.7s ease 0.2s forwards;
 }
 
-/* 卡片 */
 .card{
     background:rgba(255,255,255,0.03);
     border:1px solid rgba(255,255,255,0.07);
@@ -120,7 +114,6 @@ body{
     gap:8px;
 }
 
-/* 输入 */
 .input-group{
     margin-bottom:18px;
 }
@@ -157,7 +150,6 @@ body{
     margin-top:4px;
 }
 
-/* 按钮 */
 .btn{
     padding:14px 28px;
     font-size:15px;
@@ -199,14 +191,12 @@ body{
 }
 #chickenBtn:hover{box-shadow:0 6px 28px rgba(255,120,73,0.4);filter:brightness(1.08)}
 
-/* 右侧：进度和信息 */
 .info-panel{
     display:flex;
     flex-direction:column;
     gap:16px;
 }
 
-/* 状态 */
 .status-card{
     min-height:60px;
 }
@@ -219,7 +209,6 @@ body{
 .status-err{color:#ff6b6b}
 .status-info{color:#6eb5ff}
 
-/* 进度条 */
 #progressBox{
     display:none;
     animation:fadeIn 0.4s ease;
@@ -252,7 +241,6 @@ body{
     font-family:monospace;
 }
 
-/* 文件队列 */
 .queue{
     margin-top:12px;
 }
@@ -284,7 +272,6 @@ body{
 .queue-item.done .dot{background:#7cffb2}
 .queue-item.error .dot{background:#ff6b6b}
 
-/* 收款 */
 .qrcode-wrap{
     display:none;
     text-align:center;
@@ -301,7 +288,6 @@ body{
     box-shadow:0 4px 20px rgba(0,0,0,0.3);
 }
 
-/* 底部 */
 .footer{
     text-align:center;
     padding:32px;
@@ -311,7 +297,6 @@ body{
     margin-top:40px;
 }
 
-/* 动画 */
 @keyframes fadeInDown{
     from{opacity:0;transform:translateY(-16px)}
     to{opacity:1;transform:translateY(0)}
@@ -338,7 +323,6 @@ body{
     to{opacity:1;transform:scale(1)}
 }
 
-/* 手机端回退 */
 @media(max-width:768px){
     .topbar{padding:12px 16px}
     .topbar .nav-links{display:none}
@@ -354,7 +338,6 @@ body{
 </head>
 <body>
 
-<!-- 顶部栏 -->
 <div class="topbar">
     <div class="logo">木瓜稿件下载器pro</div>
     <div class="nav-links">
@@ -363,21 +346,19 @@ body{
 </div>
 
 <div class="main">
-    <!-- 标题 -->
     <div class="hero">
         <h1>稿件下载</h1>
         <p>记得给木瓜好评哦! • 加个鸡腿也是可以的</p>
     </div>
 
-    <!-- 工作区 -->
     <div class="workspace">
-        <!-- 左侧：操作 -->
+        <!-- 左侧 -->
         <div class="card">
             <div class="card-title">⚙ 下载配置</div>
 
             <div class="input-group">
                 <label>文件名</label>
-                <input id="fileInputBox" placeholder="如: project_v1.enc, draft_final.enc">
+                <input id="fileInputBox" placeholder="如: 123.jpg.enc, draft.pdf.enc">
                 <div class="tip">多个文件用英文逗号分隔</div>
             </div>
 
@@ -399,7 +380,7 @@ body{
             </div>
         </div>
 
-        <!-- 右侧：进度和信息 -->
+        <!-- 右侧 -->
         <div class="card info-panel status-card">
             <div class="card-title">下载状态</div>
 
@@ -407,7 +388,6 @@ body{
                 <span style="color:#555;">等待操作...</span>
             </div>
 
-            <!-- 进度条 -->
             <div id="progressBox">
                 <div id="progressBarWrap">
                     <div id="progressBar"></div>
@@ -415,7 +395,6 @@ body{
                 <div id="progressText"></div>
             </div>
 
-            <!-- 文件队列 -->
             <div class="queue" id="queue"></div>
         </div>
     </div>
@@ -468,9 +447,6 @@ function formatSize(bytes) {
 }
 
 async function decryptAndDownload(fileName, keyHex) {
-    // 直接请求，不自动加 .enc 后缀
-    const filePath = fileName;
-
     setStatus(`正在读取：${fileName}`, "info");
     addQueueItem(fileName);
 
@@ -478,7 +454,7 @@ async function decryptAndDownload(fileName, keyHex) {
     progressBar.style.width = "0%";
     progressText.innerText = "";
 
-    const resp = await fetch(filePath);
+    const resp = await fetch(fileName);
     if(!resp.ok){
         updateQueueItem(fileName, 'error');
         throw new Error(`${fileName} 文件缺失(404)`);
@@ -533,12 +509,13 @@ async function decryptAndDownload(fileName, keyHex) {
             cryptoKey,
             cipherText
         );
-        // 下载文件名直接用原始名，不再去掉 .enc
+        // 下载时去掉 .enc 后缀
+        const outName = fileName.replace(/\.enc$/, '');
         const blob = new Blob([decrypted]);
         const objUrl = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = objUrl;
-        a.download = fileName;
+        a.download = outName;
         document.body.appendChild(a);
         a.click();
         a.remove();
