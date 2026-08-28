@@ -27,7 +27,7 @@ body{
 .topbar{
     display:flex;
     align-items:center;
-    justify-contentspace-between;
+    justify-content:space-between;
     padding:16px 32px;
     border-bottom:1px solid rgba(255,255,255,0.06);
     backdrop-filter:blur(12px);
@@ -377,7 +377,7 @@ body{
 
             <div class="input-group">
                 <label>文件名</label>
-                <input id="fileInputBox" placeholder="如: project_v1, draft_final">
+                <input id="fileInputBox" placeholder="如: project_v1.enc, draft_final.enc">
                 <div class="tip">多个文件用英文逗号分隔</div>
             </div>
 
@@ -467,16 +467,12 @@ function formatSize(bytes) {
     return bytes + "B";
 }
 
-function ensureEnc(name) {
-    return name.endsWith(".enc") ? name : name + ".enc";
-}
+async function decryptAndDownload(fileName, keyHex) {
+    // 直接请求，不自动加 .enc 后缀
+    const filePath = fileName.startsWith('/') ? fileName : '/assets/' + fileName;
 
-async function decryptAndDownload(fileNameEnc, keyHex) {
-    const realName = ensureEnc(fileNameEnc);
-    const filePath = realName;
-
-    setStatus(`正在读取：${realName}`, "info");
-    addQueueItem(realName);
+    setStatus(`正在读取：${fileName}`, "info");
+    addQueueItem(fileName);
 
     progressBox.style.display = "block";
     progressBar.style.width = "0%";
@@ -484,8 +480,8 @@ async function decryptAndDownload(fileNameEnc, keyHex) {
 
     const resp = await fetch(filePath);
     if(!resp.ok){
-        updateQueueItem(realName, 'error');
-        throw new Error(`${realName} 文件缺失(404)`);
+        updateQueueItem(fileName, 'error');
+        throw new Error(`${fileName} 文件缺失(404)`);
     }
 
     const contentLength = parseInt(resp.headers.get("Content-Length")) || 0;
@@ -537,20 +533,20 @@ async function decryptAndDownload(fileNameEnc, keyHex) {
             cryptoKey,
             cipherText
         );
-        const originName = realName.replace(/\.enc$/,"");
+        // 下载文件名直接用原始名，不再去掉 .enc
         const blob = new Blob([decrypted]);
         const objUrl = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = objUrl;
-        a.download = originName;
+        a.download = fileName;
         document.body.appendChild(a);
         a.click();
         a.remove();
         URL.revokeObjectURL(objUrl);
 
-        updateQueueItem(realName, 'done');
+        updateQueueItem(fileName, 'done');
     } catch(e) {
-        updateQueueItem(realName, 'error');
+        updateQueueItem(fileName, 'error');
         throw new Error("密钥错误或文件损坏");
     }
 }
