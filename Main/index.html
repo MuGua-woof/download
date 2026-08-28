@@ -469,7 +469,7 @@ function formatSize(bytes) {
 
 async function decryptAndDownload(fileName, keyHex) {
     // 直接请求，不自动加 .enc 后缀
-    const filePath = fileName.startsWith('/') ? fileName : '/assets/' + fileName;
+    const filePath = fileName;
 
     setStatus(`正在读取：${fileName}`, "info");
     addQueueItem(fileName);
