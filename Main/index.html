@@ -3,128 +3,426 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>下载稿件</title>
+<title>木瓜稿件下载器</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#101018;color:#eee;padding:40px;text-align:center;font-family:system-ui}
 
-#passInput, #fileInputBox{
-    width:100%;
-    max-width:420px;
-    padding:12px;
-    border-radius:8px;
-    border:none;
+/* 滚动条 */
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.15);border-radius:3px}
+
+body{
+    background:#0a0a12;
+    color:#eee;
+    font-family:system-ui,-apple-system,sans-serif;
+    min-height:100vh;
+    background-image:
+        radial-gradient(ellipse at 15% 50%, rgba(66,133,255,0.1) 0%, transparent 50%),
+        radial-gradient(ellipse at 85% 30%, rgba(255,120,73,0.07) 0%, transparent 50%),
+        radial-gradient(ellipse at 50% 80%, rgba(94,108,255,0.06) 0%, transparent 50%);
+}
+
+/* 顶部栏 */
+.topbar{
+    display:flex;
+    align-items:center;
+    justify-contentspace-between;
+    padding:16px 32px;
+    border-bottom:1px solid rgba(255,255,255,0.06);
+    backdrop-filter:blur(12px);
+    position:sticky;
+    top:0;
+    z-index:100;
+    background:rgba(10,10,18,0.8);
+}
+.topbar .logo{
+    font-size:18px;
+    font-weight:700;
+    background:linear-gradient(135deg,#4285ff,#ff7849);
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+    background-clip:text;
+}
+.topbar .nav-links{
+    display:flex;
+    gap:24px;
+    font-size:14px;
+    color:#666;
+}
+.topbar .nav-links span{
+    cursor:pointer;
+    transition:color 0.2s;
+}
+.topbar .nav-links span:hover{
+    color:#aaa;
+}
+
+/* 主容器 */
+.main{
+    max-width:960px;
+    margin:0 auto;
+    padding:40px 24px;
+}
+
+/* 标题区 */
+.hero{
+    text-align:center;
+    margin-bottom:36px;
+    opacity:0;
+    animation:fadeInDown 0.7s ease forwards;
+}
+.hero h1{
+    font-size:32px;
+    font-weight:800;
+    margin-bottom:8px;
+    background:linear-gradient(135deg,#fff,#aaa);
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+    background-clip:text;
+}
+.hero p{
+    color:#666;
     font-size:15px;
-    margin-top:12px;
-}
-#decryptBtn{
-    margin-top:12px;
-    padding:12px 28px;
-    font-size:16px;
-    border:none;
-    border-radius:10px;
-    background:#4285ff;
-    color:#fff;
-    cursor:pointer;
-    user-select:none;
-}
-#decryptBtn:active{
-    transform:scale(0.96);
-}
-#status{
-    margin-top:14px;
-    color:#ffaaaa;
 }
 
-#chickenBtn{
-    margin-top:24px;
-    padding:12px 28px;
-    font-size:16px;
-    border:none;
-    border-radius:10px;
-    background:#ff7849;
-    color:#fff;
-    cursor:pointer;
-    user-select:none;
-}
-#chickenBtn:active{
-    transform:scale(0.96);
+/* 桌面：左右分栏 */
+.workspace{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:24px;
+    opacity:0;
+    animation:fadeInUp 0.7s ease 0.2s forwards;
 }
 
-.qrcode-wrap{
-    margin-top:20px;
-    display:none;
+/* 卡片 */
+.card{
+    background:rgba(255,255,255,0.03);
+    border:1px solid rgba(255,255,255,0.07);
+    border-radius:20px;
+    padding:28px;
+    backdrop-filter:blur(10px);
+    transition:box-shadow 0.3s ease, border-color 0.3s ease;
 }
-.qrcode-wrap img{
-    max-width:260px;
-    width:90%;
+.card:hover{
+    box-shadow:0 8px 40px rgba(66,133,255,0.08);
+    border-color:rgba(255,255,255,0.12);
+}
+.card-title{
+    font-size:13px;
+    font-weight:600;
+    text-transform:uppercase;
+    letter-spacing:1px;
+    color:#555;
+    margin-bottom:20px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+}
+
+/* 输入 */
+.input-group{
+    margin-bottom:18px;
+}
+.input-group label{
+    font-size:13px;
+    color:#888;
+    margin-bottom:6px;
+    display:block;
+}
+.input-group input{
+    width:100%;
+    padding:14px 16px;
     border-radius:12px;
+    border:1.5px solid rgba(255,255,255,0.1);
+    background:rgba(255,255,255,0.04);
+    color:#eee;
+    font-size:15px;
+    outline:none;
+    transition:border-color 0.25s ease,box-shadow 0.25s ease,transform 0.15s ease;
+    font-family:monospace;
+}
+.input-group input:focus{
+    border-color:#4285ff;
+    box-shadow:0 0 0 3px rgba(66,133,255,0.15);
+    transform:scale(1.01);
+}
+.input-group input::placeholder{
+    color:#444;
+    font-family:system-ui;
 }
 .tip{
-    font-size:13px;
-    color:#bbbbbb;
-    margin-top:6px;
+    font-size:11px;
+    color:#555;
+    margin-top:4px;
 }
+
+/* 按钮 */
+.btn{
+    padding:14px 28px;
+    font-size:15px;
+    font-weight:600;
+    border:none;
+    border-radius:12px;
+    cursor:pointer;
+    user-select:none;
+    position:relative;
+    overflow:hidden;
+    transition:transform 0.15s ease,box-shadow 0.25s ease,filter 0.2s ease;
+    width:100%;
+    margin-top:8px;
+}
+.btn:active{transform:scale(0.97)}
+.btn::after{
+    content:'';
+    position:absolute;
+    inset:0;
+    background:linear-gradient(120deg,transparent 30%,rgba(255,255,255,0.12) 50%,transparent 70%);
+    transform:translateX(-100%);
+    transition:transform 0.6s ease;
+}
+.btn:hover::after{transform:translateX(100%)}
+
+#decryptBtn{
+    background:linear-gradient(135deg,#4285ff,#5e6cff);
+    color:#fff;
+    box-shadow:0 4px 20px rgba(66,133,255,0.3);
+}
+#decryptBtn:hover{box-shadow:0 6px 28px rgba(66,133,255,0.45);filter:brightness(1.08)}
+
+#chickenBtn{
+    background:linear-gradient(135deg,#ff7849,#ff5577);
+    color:#fff;
+    box-shadow:0 4px 20px rgba(255,120,73,0.25);
+    width:auto;
+    margin-top:16px;
+}
+#chickenBtn:hover{box-shadow:0 6px 28px rgba(255,120,73,0.4);filter:brightness(1.08)}
+
+/* 右侧：进度和信息 */
+.info-panel{
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+}
+
+/* 状态 */
+.status-card{
+    min-height:60px;
+}
+#status{
+    font-size:14px;
+    line-height:1.6;
+    min-height:20px;
+}
+.status-ok{color:#7cffb2}
+.status-err{color:#ff6b6b}
+.status-info{color:#6eb5ff}
 
 /* 进度条 */
 #progressBox{
     display:none;
-    margin-top:16px;
-    max-width:420px;
-    margin-left:auto;
-    margin-right:auto;
-    text-align:left;
+    animation:fadeIn 0.4s ease;
 }
 #progressBarWrap{
-    background:#333;
-    border-radius:8px;
+    background:rgba(255,255,255,0.06);
+    border-radius:10px;
     overflow:hidden;
     height:20px;
+    position:relative;
 }
 #progressBar{
     height:100%;
     width:0%;
-    background:linear-gradient(90deg,#4285ff,#42c8ff);
-    transition:width 0.3s;
+    background:linear-gradient(90deg,#4285ff,#42c8ff,#5e6cff);
+    background-size:200% 100%;
+    border-radius:10px;
+    transition:width 0.4s cubic-bezier(0.4,0,0.2,1);
+    animation:shimmer 2s linear infinite;
+}
+@keyframes shimmer{
+    0%{background-position:200% 0}
+    100%{background-position:0 0}
 }
 #progressText{
-    margin-top:6px;
+    margin-top:8px;
+    font-size:12px;
+    color:#777;
+    line-height:1.8;
+    font-family:monospace;
+}
+
+/* 文件队列 */
+.queue{
+    margin-top:12px;
+}
+.queue-item{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:10px 14px;
+    background:rgba(255,255,255,0.03);
+    border-radius:10px;
+    margin-bottom:6px;
     font-size:13px;
-    color:#bbb;
+    color:#888;
+    transition:all 0.3s ease;
+}
+.queue-item.done{
+    color:#7cffb2;
+    background:rgba(124,255,178,0.05);
+}
+.queue-item.error{
+    color:#ff6b6b;
+    background:rgba(255,107,107,0.05);
+}
+.queue-item .dot{
+    width:6px;height:6px;
+    border-radius:50%;
+    background:#555;
+}
+.queue-item.done .dot{background:#7cffb2}
+.queue-item.error .dot{background:#ff6b6b}
+
+/* 收款 */
+.qrcode-wrap{
+    display:none;
+    text-align:center;
+    animation:fadeInScale 0.35s ease;
+    padding:16px;
+    background:rgba(255,255,255,0.02);
+    border-radius:14px;
+    border:1px solid rgba(255,255,255,0.05);
+}
+.qrcode-wrap img{
+    max-width:180px;
+    width:70%;
+    border-radius:12px;
+    box-shadow:0 4px 20px rgba(0,0,0,0.3);
+}
+
+/* 底部 */
+.footer{
+    text-align:center;
+    padding:32px;
+    color:#444;
+    font-size:12px;
+    border-top:1px solid rgba(255,255,255,0.04);
+    margin-top:40px;
+}
+
+/* 动画 */
+@keyframes fadeInDown{
+    from{opacity:0;transform:translateY(-16px)}
+    to{opacity:1;transform:translateY(0)}
+}
+@keyframes fadeInUp{
+    from{opacity:0;transform:translateY(20px)}
+    to{opacity:1;transform:translateY(0)}
+}
+@keyframes fadeIn{
+    from{opacity:0}
+    to{opacity:1}
+}
+@keyframes fadeInScale{
+    from{opacity:0;transform:scale(0.92)}
+    to{opacity:1;transform:scale(1)}
+}
+.checkmark{
+    display:inline-block;
+    margin-right:4px;
+    animation:popIn 0.4s cubic-bezier(0.68,-0.55,0.27,1.55);
+}
+@keyframes popIn{
+    from{opacity:0;transform:scale(0)}
+    to{opacity:1;transform:scale(1)}
+}
+
+/* 手机端回退 */
+@media(max-width:768px){
+    .topbar{padding:12px 16px}
+    .topbar .nav-links{display:none}
+    .main{padding:24px 16px}
+    .hero h1{font-size:24px}
+    .workspace{
+        grid-template-columns:1fr;
+        gap:16px;
+    }
+    .card{padding:20px 16px;border-radius:16px}
 }
 </style>
 </head>
 <body>
 
-<h2>下载稿件</h2>
-<h2>记得给木瓜一个好评哦!</h2>
-<h2>加个鸡腿也是可以的，求求了</h2>
-
-<div>
-    <p style="margin-top:20px;">文件名</p>
-    <input id="fileInputBox" placeholder="多个用英文逗号分隔">
-    <div class="tip">必须填写文件名</div>
-
-    <p style="margin-top:16px;">请输入稿件密钥</p>
-    <input id="passInput" placeholder="输入十六进制密钥">
-    <br>
-    <button id="decryptBtn">下载</button>
-    <div id="status"></div>
-
-    <!-- 进度条 -->
-    <div id="progressBox">
-        <div id="progressBarWrap">
-            <div id="progressBar"></div>
-        </div>
-        <div id="progressText"></div>
+<!-- 顶部栏 -->
+<div class="topbar">
+    <div class="logo">木瓜稿件下载器pro</div>
+    <div class="nav-links">
+        <span onclick="document.getElementById('chickenBtn').click()">→赞助我</span>
     </div>
 </div>
 
-<button id="chickenBtn">🍗 加个鸡腿</button>
+<div class="main">
+    <!-- 标题 -->
+    <div class="hero">
+        <h1>稿件下载</h1>
+        <p>记得给木瓜好评哦! • 加个鸡腿也是可以的</p>
+    </div>
 
-<div class="qrcode-wrap" id="qrBox">
-    <img src="https://raw.githubusercontent.com/MuGua-woof/qrcode/refs/heads/main/VX_PAY.png" alt="收款码">
-    <p style="margin-top:8px;color:#ccc;">微信扫码</p>
+    <!-- 工作区 -->
+    <div class="workspace">
+        <!-- 左侧：操作 -->
+        <div class="card">
+            <div class="card-title">⚙ 下载配置</div>
+
+            <div class="input-group">
+                <label>文件名</label>
+                <input id="fileInputBox" placeholder="如: project_v1, draft_final">
+                <div class="tip">多个文件用英文逗号分隔</div>
+            </div>
+
+            <div class="input-group">
+                <label>稿件密钥</label>
+                <input id="passInput" placeholder="输入十六进制密钥" type="password">
+                <div class="tip">由画师提供</div>
+            </div>
+
+            <button class="btn" id="decryptBtn">⬇ 开始下载</button>
+
+            <div style="text-align:center;margin-top:20px;">
+                <button class="btn" id="chickenBtn">🍗 加个鸡腿</button>
+            </div>
+
+            <div class="qrcode-wrap" id="qrBox">
+                <img src="https://raw.githubusercontent.com/MuGua-woof/qrcode/refs/heads/main/VX_PAY.png" alt="收款码">
+                <p style="margin-top:8px;color:#666;font-size:12px;">微信扫码赞助</p>
+            </div>
+        </div>
+
+        <!-- 右侧：进度和信息 -->
+        <div class="card info-panel status-card">
+            <div class="card-title">下载状态</div>
+
+            <div id="status">
+                <span style="color:#555;">等待操作...</span>
+            </div>
+
+            <!-- 进度条 -->
+            <div id="progressBox">
+                <div id="progressBarWrap">
+                    <div id="progressBar"></div>
+                </div>
+                <div id="progressText"></div>
+            </div>
+
+            <!-- 文件队列 -->
+            <div class="queue" id="queue"></div>
+        </div>
+    </div>
+</div>
+
+<div class="footer">
+    <h>© 木瓜 代码由腾讯元宝提供🤓 </h>
 </div>
 
 <script>
@@ -132,6 +430,28 @@ const statusDom = document.getElementById("status");
 const progressBox = document.getElementById("progressBox");
 const progressBar = document.getElementById("progressBar");
 const progressText = document.getElementById("progressText");
+const queueDom = document.getElementById("queue");
+
+function setStatus(msg, type){
+    statusDom.innerHTML = msg;
+    statusDom.className = type ? "status-" + type : "";
+}
+
+function addQueueItem(name){
+    const div = document.createElement('div');
+    div.className = 'queue-item';
+    div.id = 'q-' + name;
+    div.innerHTML = `<span class="dot"></span><span>${name}</span>`;
+    queueDom.appendChild(div);
+    return div;
+}
+function updateQueueItem(name, state){
+    const el = document.getElementById('q-' + name);
+    if(el){
+        el.classList.remove('done','error');
+        if(state) el.classList.add(state);
+    }
+}
 
 async function hexToArray(hex) {
     const arr = [];
@@ -147,14 +467,26 @@ function formatSize(bytes) {
     return bytes + "B";
 }
 
+function ensureEnc(name) {
+    return name.endsWith(".enc") ? name : name + ".enc";
+}
+
 async function decryptAndDownload(fileNameEnc, keyHex) {
-    statusDom.innerText = `正在读取：${fileNameEnc}`;
+    const realName = ensureEnc(fileNameEnc);
+    const filePath = realName.startsWith('/') ? realName : '/assets/' + realName;
+
+    setStatus(`正在读取：${realName}`, "info");
+    addQueueItem(realName);
+
     progressBox.style.display = "block";
     progressBar.style.width = "0%";
     progressText.innerText = "";
 
-    const resp = await fetch(fileNameEnc);
-    if(!resp.ok) throw new Error(`${fileNameEnc} 文件缺失(404)`);
+    const resp = await fetch(filePath);
+    if(!resp.ok){
+        updateQueueItem(realName, 'error');
+        throw new Error(`${realName} 文件缺失(404)`);
+    }
 
     const contentLength = parseInt(resp.headers.get("Content-Length")) || 0;
     const reader = resp.body.getReader();
@@ -171,7 +503,7 @@ async function decryptAndDownload(fileNameEnc, keyHex) {
 
         const now = performance.now();
         const elapsed = (now - lastTime) / 1000;
-        if(elapsed >= 0.5) {
+        if(elapsed >= 0.3) {
             const speed = (received - lastReceived) / elapsed;
             lastTime = now;
             lastReceived = received;
@@ -184,13 +516,11 @@ async function decryptAndDownload(fileNameEnc, keyHex) {
         }
     }
 
-    // 合并
     const totalLength = chunks.reduce((acc, c) => acc + c.length, 0);
     const buf = new Uint8Array(totalLength);
     let offset = 0;
     for(const c of chunks) { buf.set(c, offset); offset += c.length; }
 
-    // 解密
     const rawKey = await hexToArray(keyHex);
     const cryptoKey = await crypto.subtle.importKey(
         "raw", rawKey,
@@ -207,7 +537,7 @@ async function decryptAndDownload(fileNameEnc, keyHex) {
             cryptoKey,
             cipherText
         );
-        const originName = fileNameEnc.replace(/\.enc$/,"");
+        const originName = realName.replace(/\.enc$/,"");
         const blob = new Blob([decrypted]);
         const objUrl = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -217,29 +547,33 @@ async function decryptAndDownload(fileNameEnc, keyHex) {
         a.click();
         a.remove();
         URL.revokeObjectURL(objUrl);
+
+        updateQueueItem(realName, 'done');
     } catch(e) {
+        updateQueueItem(realName, 'error');
         throw new Error("密钥错误或文件损坏");
     }
 }
 
 document.getElementById("decryptBtn").addEventListener("click", async ()=>{
-    statusDom.innerText = "";
+    setStatus("");
+    queueDom.innerHTML = "";
     progressBox.style.display = "none";
     const keyHex = document.getElementById("passInput").value.trim();
     const fileText = document.getElementById("fileInputBox").value.trim();
     const fileList = fileText.split(",").map(s=>s.trim()).filter(s=>s);
 
     if(fileList.length===0){
-        statusDom.innerText = "错误：请填写文件名";
+        setStatus("错误：请填写文件名", "err");
         return;
     }
     if(!/^[0-9a-fA-F]+$/.test(keyHex)){
-        statusDom.innerText = "错误：必须输入十六进制字符串密钥";
+        setStatus("错误：必须输入十六进制字符串密钥", "err");
         return;
     }
     const keyLen = keyHex.length / 2;
     if(![16,24,32].includes(keyLen)){
-        statusDom.innerText = "错误：密钥长度必须为16/24/32字节(32/48/64位十六进制)";
+        setStatus("错误：密钥长度必须为 32/48/64 位十六进制", "err");
         return;
     }
     try {
@@ -247,16 +581,16 @@ document.getElementById("decryptBtn").addEventListener("click", async ()=>{
             await decryptAndDownload(f, keyHex);
             await new Promise(r=>setTimeout(r,400));
         }
-        statusDom.innerText = "全部下载完成";
+        setStatus('<span class="checkmark">✓</span>全部下载完成', "ok");
         progressBox.style.display = "none";
     } catch(err) {
-        statusDom.innerText = err.message;
+        setStatus(err.message, "err");
     }
 })
 
 const btn = document.getElementById("chickenBtn");
 const qrBox = document.getElementById("qrBox");
-btn.addEventListener("click",()=>{
+btn.addEventListener("click", ()=>{
     qrBox.style.display = qrBox.style.display === "block" ? "none" : "block";
 })
 </script>
